@@ -12,10 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { error } from 'console';
+import { Alert, AlertDescription } from '../ui/alert';
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const {
@@ -33,6 +36,7 @@ export default function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    setError('');
 
     try {
       const result = await signIn('credentials', {
@@ -46,7 +50,7 @@ export default function LoginForm() {
         toast.success('Welcome back!', {
           description: 'Redirecting to your dashboard...'
         });
-        
+
         setTimeout(() => {
           router.push('/dashboard');
         }, 1000);
@@ -56,11 +60,13 @@ export default function LoginForm() {
           description: 'Please enter your 2FA code to continue'
         });
       } else {
+        setError('Invalid email or password');
         toast.error('Login failed', {
           description: result?.error || 'Invalid email or password'
         });
       }
     } catch (err) {
+      setError('Network error');
       toast.error('Network error', {
         description: 'Please check your connection and try again'
       });
@@ -79,6 +85,11 @@ export default function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <Alert className="border-red-200 bg-red-50 text-red-800">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
@@ -131,9 +142,9 @@ export default function LoginForm() {
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isLoading}
           >
             {isLoading ? (

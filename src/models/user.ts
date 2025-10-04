@@ -56,8 +56,6 @@ const userSchema = new Schema<IUser>({
     timestamps: true
 })
 
-userSchema.index({ email: 1 });
-
 userSchema.methods.toJSON = function () {
     const user = this.toObject();
     delete user.hashedPassword;

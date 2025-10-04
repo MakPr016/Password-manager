@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider"
-
+import { Toaster } from "@/components/ui/sonner"
+import AuthProvider from '@/providers/auth-provider';
 
 const poppinsSans = Poppins({
   variable: "--font-poppins-sans",
@@ -36,7 +37,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

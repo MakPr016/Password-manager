@@ -5,7 +5,8 @@ import { useTheme } from 'next-themes'
 import { ThemeToggleButton, useThemeTransition } from '@/components/ui/theme-toggle-button'
 import Image from 'next/image'
 import { Button } from '../ui/button'
-import {Rocket} from "lucide-react"
+import { Rocket } from "lucide-react"
+import Link from 'next/link'
 
 const Navbar = () => {
     const { theme, setTheme } = useTheme()
@@ -43,7 +44,9 @@ const Navbar = () => {
             </aside>
             <aside className='flex items-center gap-2'>
                 <Button variant='default' className='rounded-sm'>
-                    <span className='hidden md:block'>Get Started</span><Rocket />
+                    <Link href='/signup' className='flex items-center gap-2'>
+                        <span className='hidden md:block'>Get Started</span><Rocket />
+                    </Link>
                 </Button>
                 <ThemeToggleButton
                     theme={currentTheme}

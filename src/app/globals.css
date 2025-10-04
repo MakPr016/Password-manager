@@ -1,7 +1,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Blanka", sans-serif;
+  src : url("/fonts/blanka.otf") format("opentype");
+}
+
 @custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-blanka : "Blanka", sans-serif;
+}
 
 @theme inline {
   --color-background: var(--background);

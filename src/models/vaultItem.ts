@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { VaultItem } from '@/types';
 
 interface IVaultItem extends Document {
   userId: mongoose.Types.ObjectId;

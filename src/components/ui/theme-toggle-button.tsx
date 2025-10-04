@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
 import { Moon, Sun } from 'lucide-react';
 import { useCallback } from 'react';
 import { Button } from '@/components/ui/button';

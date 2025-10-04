@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { User } from '@/types';
 
 interface IUser extends Document {
   name: string;

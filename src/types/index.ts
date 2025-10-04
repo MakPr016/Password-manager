@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 export interface User {
   _id?: string;
   name: string;
@@ -22,6 +23,28 @@ export interface VaultItemData {
 }
 
 export interface VaultItem {
+  _id?: string;
+  userId: string | mongoose.Types.ObjectId;
+  encryptedData: string;
+  category: string;
+  isFavorite: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastAccessed?: Date;
+}
+
+export interface VaultItemDocument {
+  _id?: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  encryptedData: string;
+  category: string;
+  isFavorite: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastAccessed?: Date;
+}
+
+export interface VaultItemAPI {
   _id?: string;
   userId: string;
   encryptedData: string;

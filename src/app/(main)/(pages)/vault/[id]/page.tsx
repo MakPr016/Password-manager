@@ -223,7 +223,7 @@ export default function VaultItemPage({ params }: { params: Promise<{ id: string
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Item</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete "{item?.decryptedData?.title}"? This action cannot be undone.
+                            Are you sure you want to delete &quot;{item?.decryptedData?.title}&quot;? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -89,7 +89,7 @@ export default function EditVaultItemModal({ open, onOpenChange, onSuccess, item
                 customCategory: isCustom ? item.category : '',
             });
         }
-    }, [open, item, reset]);
+    }, [open]);
 
     const onSubmit = async (data: VaultItemFormData) => {
         if (!session?.user?.email || !masterPassword) {
@@ -113,7 +113,13 @@ export default function EditVaultItemModal({ open, onOpenChange, onSuccess, item
                 notes: data.notes ?? '',
             };
 
-            const encryptedData = encryptVaultItem(vaultData, masterPassword, session.user.email);
+            const encryptionResult = encryptVaultItem(vaultData, masterPassword, session.user.email);
+
+            if (!encryptionResult.success || !encryptionResult.encryptedData) {
+                toast.error('Failed to encrypt data');
+                setIsSubmitting(false);
+                return;
+            }
 
             const finalCategory = data.category === 'other' && data.customCategory
                 ? data.customCategory.toLowerCase().trim()
@@ -123,7 +129,7 @@ export default function EditVaultItemModal({ open, onOpenChange, onSuccess, item
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    encryptedData,
+                    encryptedData: encryptionResult.encryptedData,
                     category: finalCategory,
                 }),
             });

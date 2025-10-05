@@ -121,7 +121,6 @@ export default function DashboardPage() {
             };
 
             setStats(calculatedStats);
-            toast.success('Dashboard loaded!');
         } catch (error) {
             toast.error('Error analyzing vault');
         } finally {

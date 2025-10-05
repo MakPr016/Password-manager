@@ -4,8 +4,8 @@ import { encrypt2FASecret, decrypt2FASecret } from './2faEncryption';
 
 export const generate2FASecret = (email: string) => {
     const secret = speakeasy.generateSecret({
-        name: `VaultPass (${email})`,
-        issuer: 'VaultPass',
+        name: `Pass Manager (${email})`,
+        issuer: 'PassManager',
         length: 32
     });
 

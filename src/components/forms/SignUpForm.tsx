@@ -112,7 +112,7 @@ export default function SignupForm() {
                 } else if (signInResponse?.ok) {
                     toast.success('Welcome! You are now logged in.');
                     reset();
-                    router.push('/dashboard');
+                    router.push('/setup-2fa');
                 }
             } else {
                 setError(result.error || 'Failed to create account');

@@ -54,9 +54,12 @@ export async function POST(request: NextRequest) {
         }
 
         const allVaultItems = await VaultItem.find({ userId: user._id });
+        const websiteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+        console.log(`Found ${allVaultItems.length} vault items to re-encrypt`);
 
         const reencryptedItems = [];
-        let failedItems = 0;
+        const failedItems = [];
 
         for (const item of allVaultItems) {
             try {
@@ -66,36 +69,65 @@ export async function POST(request: NextRequest) {
                     user.email
                 );
 
-                if (decryptResult.success && decryptResult.data) {
-                    const encryptionResult = encryptVaultItem(
-                        decryptResult.data,
-                        newPassword,
-                        user.email
-                    );
-
-                    if (encryptionResult.success && encryptionResult.encryptedData) {
-                        reencryptedItems.push({
-                            _id: item._id,
-                            encryptedData: encryptionResult.encryptedData
-                        });
-                    } else {
-                        failedItems++;
-                    }
-                } else {
-                    failedItems++;
+                if (!decryptResult.success || !decryptResult.data) {
+                    console.error(`Failed to decrypt item ${item._id}: ${decryptResult.error}`);
+                    failedItems.push({
+                        id: item._id,
+                        reason: decryptResult.error || 'Decryption failed'
+                    });
+                    continue;
                 }
+
+                let vaultData = decryptResult.data;
+
+                if (vaultData.title === 'PassManager Account' || 
+                    vaultData.url?.includes(websiteUrl) ||
+                    vaultData.notes?.includes('PassManager account')) {
+                    vaultData = {
+                        ...vaultData,
+                        password: newPassword,
+                        notes: 'Your PassManager account credentials - password updated automatically'
+                    };
+                }
+
+                const encryptionResult = encryptVaultItem(
+                    vaultData,
+                    newPassword,
+                    user.email
+                );
+
+                if (!encryptionResult.success || !encryptionResult.encryptedData) {
+                    console.error(`Failed to encrypt item ${item._id}: ${encryptionResult.error}`);
+                    failedItems.push({
+                        id: item._id,
+                        reason: encryptionResult.error || 'Encryption failed'
+                    });
+                    continue;
+                }
+
+                reencryptedItems.push({
+                    _id: item._id,
+                    encryptedData: encryptionResult.encryptedData
+                });
             } catch (error) {
-                console.error(`Failed to re-encrypt item ${item._id}:`, error);
-                failedItems++;
+                console.error(`Exception re-encrypting item ${item._id}:`, error);
+                failedItems.push({
+                    id: item._id,
+                    reason: error instanceof Error ? error.message : 'Unknown error'
+                });
             }
         }
 
-        if (failedItems > 0) {
+        if (failedItems.length > 0) {
+            console.error('Failed items:', failedItems);
             return NextResponse.json({
                 success: false,
-                error: `Failed to re-encrypt ${failedItems} vault items. Password not changed.`
+                error: `Failed to re-encrypt ${failedItems.length} vault items. Password not changed.`,
+                failedItems
             }, { status: 500 });
         }
+
+        console.log(`Successfully re-encrypted ${reencryptedItems.length} items`);
 
         for (const item of reencryptedItems) {
             await VaultItem.findByIdAndUpdate(item._id, {
@@ -107,6 +139,8 @@ export async function POST(request: NextRequest) {
         user.hashedPassword = hashedPassword;
         await user.save();
 
+        console.log('Password changed successfully');
+
         return NextResponse.json({
             success: true,
             message: 'Password changed successfully',
@@ -117,7 +151,7 @@ export async function POST(request: NextRequest) {
         console.error('Password change error:', error);
         return NextResponse.json({
             success: false,
-            error: 'Internal server error'
+            error: error instanceof Error ? error.message : 'Internal server error'
         }, { status: 500 });
     }
 }

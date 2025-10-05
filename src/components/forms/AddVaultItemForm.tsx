@@ -20,6 +20,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { encryptVaultItem } from '@/lib/encryption';
 import { generatePassword } from '@/lib/passwordUtils';
+import { useVaultCategory } from '@/providers/vault-category-provider';
 import type { VaultItemData, PasswordOptions } from '@/types';
 
 const vaultItemSchema = z.object({
@@ -43,6 +44,7 @@ interface AddVaultItemFormProps {
 
 export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }: AddVaultItemFormProps) {
     const { data: session } = useSession();
+    const { triggerRefresh } = useVaultCategory();
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -137,6 +139,7 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
 
             if (result.success) {
                 toast.success('Vault item created successfully!');
+                triggerRefresh();
                 onSuccess();
             } else {
                 toast.error(result.error || 'Failed to create vault item');

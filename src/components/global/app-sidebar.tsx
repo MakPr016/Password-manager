@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
+import { useVaultCategory } from '@/providers/vault-category-provider';
 import {
   LayoutDashboard,
   KeyRound,
@@ -13,7 +14,6 @@ import {
   LogOut,
   Lock,
   FolderKey,
-  Plus,
   Briefcase,
   CreditCard,
   Users
@@ -79,6 +79,7 @@ export default function AppSidebar() {
   const { data: session, status } = useSession();
   const { theme, setTheme } = useTheme();
   const { startTransition } = useThemeTransition();
+  const { refreshTrigger } = useVaultCategory();
   const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -91,7 +92,7 @@ export default function AppSidebar() {
     if (status === 'authenticated') {
       fetchCategories();
     }
-  }, [status]);
+  }, [status, refreshTrigger]);
 
   const fetchCategories = async () => {
     try {

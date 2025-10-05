@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { encryptVaultItem } from '@/lib/encryption';
 import { useVault } from '@/providers/vault-provider';
+import { useVaultCategory } from '@/providers/vault-category-provider';
 
 const vaultItemSchema = z.object({
     title: z.string().min(1, 'Title is required'),
@@ -48,6 +49,7 @@ interface EditVaultItemModalProps {
 export default function EditVaultItemModal({ open, onOpenChange, onSuccess, item }: EditVaultItemModalProps) {
     const { data: session } = useSession();
     const { masterPassword } = useVault();
+    const { triggerRefresh } = useVaultCategory();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -138,6 +140,7 @@ export default function EditVaultItemModal({ open, onOpenChange, onSuccess, item
 
             if (result.success) {
                 toast.success('Item updated successfully!');
+                triggerRefresh();
                 onSuccess();
                 onOpenChange(false);
             } else {

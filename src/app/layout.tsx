@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/providers/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import AuthProvider from '@/providers/auth-provider';
 import { VaultProvider } from "@/providers/vault-provider";
+import { VaultCategoryProvider } from "@/providers/vault-category-provider"
 
 const poppinsSans = Poppins({
   variable: "--font-poppins-sans",
@@ -40,8 +41,10 @@ export default function RootLayout({
         >
           <AuthProvider>
             <VaultProvider>
-              {children}
-              <Toaster richColors position="top-right" />
+              <VaultCategoryProvider>
+                {children}
+                <Toaster richColors position="top-right" />
+              </VaultCategoryProvider>
             </VaultProvider>
           </AuthProvider>
         </ThemeProvider>

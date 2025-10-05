@@ -56,7 +56,7 @@ export default function AddVaultItemModal({ open, onOpenChange, onSuccess }: Add
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto scrollbar-hide">
                 {showPasswordPrompt ? (
                     <>
                         <DialogHeader>

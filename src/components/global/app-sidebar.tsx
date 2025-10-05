@@ -12,7 +12,11 @@ import {
   Settings,
   LogOut,
   Lock,
-  FolderKey
+  FolderKey,
+  Plus,
+  Briefcase,
+  CreditCard,
+  Users
 } from 'lucide-react';
 
 import {
@@ -33,6 +37,7 @@ import { ThemeToggleButton, useThemeTransition } from '@/components/ui/theme-tog
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '../ui/button';
+import Link from 'next/link';
 
 const navItems = [
   {
@@ -52,28 +57,20 @@ const navItems = [
   },
 ];
 
-const vaultCategories = [
-  {
-    title: 'All Items',
-    url: '/vault',
-    icon: FolderKey,
-  },
-  {
-    title: 'Work',
-    url: '/vault?category=work',
-    icon: Lock,
-  },
-  {
-    title: 'Personal',
-    url: '/vault?category=personal',
-    icon: Shield,
-  },
-  {
-    title: 'Banking',
-    url: '/vault?category=banking',
-    icon: Lock,
-  },
-];
+const getCategoryIcon = (category: string) => {
+  switch (category.toLowerCase()) {
+    case 'work':
+      return Briefcase;
+    case 'personal':
+      return Shield;
+    case 'banking':
+      return CreditCard;
+    case 'social':
+      return Users;
+    default:
+      return Lock;
+  }
+};
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -83,10 +80,33 @@ export default function AppSidebar() {
   const { theme, setTheme } = useTheme();
   const { startTransition } = useThemeTransition();
   const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCategories();
+    }
+  }, [status]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/vault/categories');
+      const data = await response.json();
+      
+      if (data.success) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -115,18 +135,14 @@ export default function AppSidebar() {
       .slice(0, 2);
   };
 
-  const isVaultCategoryActive = (url: string) => {
+  const isVaultCategoryActive = (categoryName?: string) => {
     if (pathname !== '/vault') return false;
 
-    const category = searchParams.get('category');
+    const currentCategory = searchParams.get('category');
 
-    if (url === '/vault' && !category) return true;
+    if (!categoryName && !currentCategory) return true;
 
-    if (url.includes('category=') && category) {
-      return url.includes(`category=${category}`);
-    }
-
-    return false;
+    return currentCategory === categoryName;
   };
 
   const currentTheme = (theme === 'system' ? 'light' : theme) as 'light' | 'dark';
@@ -137,7 +153,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
+              <Link href="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <KeyRound className="size-4" />
                 </div>
@@ -145,7 +161,7 @@ export default function AppSidebar() {
                   <span className="font-semibold">PassManager</span>
                   <span className="text-xs">Secure Vault</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -163,10 +179,10 @@ export default function AppSidebar() {
                     isActive={pathname === item.url}
                     tooltip={item.title}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -178,20 +194,49 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Vaults</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {vaultCategories.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isVaultCategoryActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isVaultCategoryActive()}
+                  tooltip="All Items"
+                >
+                  <Link href="/vault">
+                    <FolderKey />
+                    <span>All Items</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {loadingCategories ? (
+                <>
+                  <SidebarMenuItem>
+                    <div className="flex items-center gap-2 px-2 py-1.5">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  </SidebarMenuItem>
+                </>
+              ) : (
+                categories.map((category) => {
+                  const Icon = getCategoryIcon(category);
+                  const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+                  
+                  return (
+                    <SidebarMenuItem key={category}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isVaultCategoryActive(category)}
+                        tooltip={displayName}
+                      >
+                        <Link href={`/vault?category=${category}`}>
+                          <Icon />
+                          <span>{displayName}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

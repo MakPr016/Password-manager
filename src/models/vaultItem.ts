@@ -24,7 +24,6 @@ const vaultItemSchema = new Schema<IVaultItem>({
   category: {
     type: String,
     default: 'general',
-    enum: ['general', 'work', 'personal', 'banking', 'social', 'other'],
     lowercase: true,
     trim: true
   },

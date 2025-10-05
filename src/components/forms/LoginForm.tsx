@@ -13,16 +13,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { useVault } from '@/providers/vault-provider';
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { unlockVault } = useVault();
 
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -49,6 +52,8 @@ export default function LoginForm() {
         toast.success('Welcome back!', {
           description: 'Redirecting to your dashboard...'
         });
+
+        await unlockVault(data.password);
 
         setTimeout(() => {
           router.push('/dashboard');

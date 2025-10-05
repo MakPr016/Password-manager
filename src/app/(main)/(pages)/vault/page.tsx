@@ -7,10 +7,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import VaultItemsGrid from './_components/VaultItemsGrid';
-import PasswordPrompt from './_components/PasswordPrompt';
 import AddVaultItemModal from './_components/AddVaultItemModal';
 import { decryptVaultItem } from '@/lib/encryption';
+import { useVault } from '@/providers/vault-provider';
 
 interface VaultItem {
     _id: string;
@@ -25,13 +28,14 @@ export default function VaultPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const category = searchParams.get('category');
+    const { masterPassword, isUnlocked, unlockVault } = useVault();
     
-    const [showPasswordPrompt, setShowPasswordPrompt] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
     const [decryptedItems, setDecryptedItems] = useState<any[]>([]);
-    const [masterPassword, setMasterPassword] = useState<string>('');
+    const [tempPassword, setTempPassword] = useState('');
+    const [unlocking, setUnlocking] = useState(false);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -46,10 +50,10 @@ export default function VaultPage() {
     }, [status]);
 
     useEffect(() => {
-        if (masterPassword && vaultItems.length > 0) {
+        if (isUnlocked && masterPassword && vaultItems.length > 0) {
             filterAndDecryptItems();
         }
-    }, [category, vaultItems, masterPassword]);
+    }, [category, vaultItems, isUnlocked, masterPassword]);
 
     const fetchVaultItems = async () => {
         try {
@@ -63,6 +67,8 @@ export default function VaultPage() {
             }
         } catch (error) {
             toast.error('Error fetching vault items');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -100,52 +106,43 @@ export default function VaultPage() {
         setDecryptedItems(decrypted);
     };
 
-    const handlePasswordSubmit = async (password: string) => {
-        setLoading(true);
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tempPassword || !session?.user?.email) return;
+
+        setUnlocking(true);
 
         try {
-            if (!session?.user?.email) {
-                toast.error('Session error');
+            const response = await fetch('/api/vault');
+            const data = await response.json();
+
+            if (!data.success) {
+                toast.error('Failed to fetch vault items');
+                setUnlocking(false);
                 return;
             }
 
-            setMasterPassword(password);
+            const testItem = data.items[0];
+            if (testItem) {
+                const result = decryptVaultItem(
+                    testItem.encryptedData,
+                    tempPassword,
+                    session.user.email
+                );
 
-            const decrypted = vaultItems
-                .map((item) => {
-                    const result = decryptVaultItem(
-                        item.encryptedData,
-                        password,
-                        session.user.email!
-                    );
-
-                    if (!result.success || !result.data) {
-                        return null;
-                    }
-
-                    return {
-                        _id: item._id,
-                        category: item.category,
-                        isFavorite: item.isFavorite,
-                        createdAt: item.createdAt,
-                        decryptedData: result.data
-                    };
-                })
-                .filter((item) => item !== null);
-
-            if (decrypted.length === 0) {
-                toast.error('Invalid password or no items could be decrypted');
-                setLoading(false);
-                return;
+                if (!result.success) {
+                    toast.error('Invalid password');
+                    setUnlocking(false);
+                    return;
+                }
             }
 
-            setDecryptedItems(decrypted);
-            setShowPasswordPrompt(false);
-            toast.success('Vault unlocked successfully!');
+            await unlockVault(tempPassword);
+            setTempPassword('');
         } catch (error) {
-            toast.error('Failed to decrypt vault');
+            toast.error('Error unlocking vault');
         } finally {
-            setLoading(false);
+            setUnlocking(false);
         }
     };
 
@@ -166,14 +163,60 @@ export default function VaultPage() {
         );
     }
 
+    if (!isUnlocked) {
+        return (
+            <div className="container mx-auto py-8 px-4 max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Unlock Vault</CardTitle>
+                        <CardDescription>
+                            Enter your master password to access your vault
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="masterPassword">Master Password</Label>
+                                <Input
+                                    id="masterPassword"
+                                    type="password"
+                                    value={tempPassword}
+                                    onChange={(e) => setTempPassword(e.target.value)}
+                                    placeholder="Enter your password"
+                                    autoFocus
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={!tempPassword || unlocking}
+                            >
+                                {unlocking ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Unlocking...
+                                    </>
+                                ) : (
+                                    'Unlock Vault'
+                                )}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <>
-            <PasswordPrompt
-                open={showPasswordPrompt}
-                onPasswordSubmit={handlePasswordSubmit}
-                loading={loading}
-            />
-
             <AddVaultItemModal
                 open={showAddModal}
                 onOpenChange={setShowAddModal}
@@ -188,15 +231,13 @@ export default function VaultPage() {
                             Manage your secure credentials
                         </p>
                     </div>
-                    {!showPasswordPrompt && (
-                        <Button onClick={() => setShowAddModal(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add New
-                        </Button>
-                    )}
+                    <Button onClick={() => setShowAddModal(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add New
+                    </Button>
                 </div>
 
-                {decryptedItems.length === 0 && !showPasswordPrompt ? (
+                {decryptedItems.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-muted-foreground mb-4">
                             {category ? `No ${category} items found` : 'No vault items found'}

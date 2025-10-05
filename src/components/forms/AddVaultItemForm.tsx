@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { encryptVaultItem } from '@/lib/encryption';
-import type { VaultItemData } from '@/types';
+import { generatePassword } from '@/lib/passwordUtils';
+import type { VaultItemData, PasswordOptions } from '@/types';
 
 const vaultItemSchema = z.object({
     title: z.string().min(1, 'Title is required'),
@@ -27,7 +28,8 @@ const vaultItemSchema = z.object({
     password: z.string(),
     url: z.string(),
     notes: z.string(),
-    category: z.enum(['general', 'work', 'personal', 'banking', 'social', 'other']),
+    category: z.string().min(1, 'Category is required'),
+    customCategory: z.string().optional(),
     isFavorite: z.boolean(),
 });
 
@@ -42,6 +44,7 @@ interface AddVaultItemFormProps {
 export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }: AddVaultItemFormProps) {
     const { data: session } = useSession();
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const {
         register,
@@ -58,16 +61,39 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
             url: '',
             notes: '',
             category: 'general',
+            customCategory: '',
             isFavorite: false,
         },
     });
 
     const category = watch('category');
+    const customCategory = watch('customCategory');
     const isFavorite = watch('isFavorite');
+    const password = watch('password');
+
+    const handleGeneratePassword = () => {
+        const options: PasswordOptions = {
+            length: 16,
+            uppercase: true,
+            lowercase: true,
+            numbers: true,
+            symbols: true,
+            excludeSimilar: true,
+        };
+        
+        const generated = generatePassword(options);
+        setValue('password', generated);
+        toast.success('Password generated!');
+    };
 
     const onSubmit = async (data: VaultItemFormData) => {
         if (!session?.user?.email) {
             toast.error('Not authenticated');
+            return;
+        }
+
+        if (data.category === 'other' && !data.customCategory) {
+            toast.error('Please enter a custom category name');
             return;
         }
 
@@ -93,12 +119,16 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
                 return;
             }
 
+            const finalCategory = data.category === 'other' && data.customCategory
+                ? data.customCategory.toLowerCase().trim()
+                : data.category;
+
             const response = await fetch('/api/vault', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     encryptedData: encryptionResult.encryptedData,
-                    category: data.category,
+                    category: finalCategory,
                     isFavorite: data.isFavorite,
                 }),
             });
@@ -143,12 +173,32 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
 
             <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                    id="password"
-                    type="password"
-                    {...register('password')}
-                    placeholder="Enter password"
-                />
+                <div className="flex gap-2">
+                    <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        {...register('password')}
+                        placeholder="Enter password"
+                        className="flex-1"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff/> : <Eye/>}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleGeneratePassword}
+                        title="Generate Password"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-2">
@@ -175,9 +225,7 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
                 <Label htmlFor="category">Category</Label>
                 <Select
                     value={category}
-                    onValueChange={(value) =>
-                        setValue('category', value as any)
-                    }
+                    onValueChange={(value) => setValue('category', value)}
                 >
                     <SelectTrigger>
                         <SelectValue />
@@ -188,10 +236,24 @@ export default function AddVaultItemForm({ masterPassword, onSuccess, onCancel }
                         <SelectItem value="personal">Personal</SelectItem>
                         <SelectItem value="banking">Banking</SelectItem>
                         <SelectItem value="social">Social</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="other">Other (Custom)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
+
+            {category === 'other' && (
+                <div className="space-y-2">
+                    <Label htmlFor="customCategory">Custom Category Name *</Label>
+                    <Input
+                        id="customCategory"
+                        {...register('customCategory')}
+                        placeholder="Enter category name"
+                    />
+                    {errors.customCategory && (
+                        <p className="text-sm text-red-500">{errors.customCategory.message}</p>
+                    )}
+                </div>
+            )}
 
             <div className="flex items-center space-x-2">
                 <Checkbox

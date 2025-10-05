@@ -24,7 +24,6 @@ export default function LoginForm() {
 
   const {
     register,
-    handleSubmit,
     getValues,
     formState: { errors },
   } = useForm<LoginFormData>({

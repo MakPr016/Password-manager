@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import connectMongo from '@/lib/mongodb';
 import User from '@/models/User';
-import type { SignupCredentials } from '@/types';
+import VaultItem from '@/models/VaultItem';
+import { encryptVaultItem } from '@/lib/encryption';
+import type { SignupCredentials, VaultItemData } from '@/types';
 
 export async function POST(request: NextRequest) {
     try {
@@ -70,6 +72,39 @@ export async function POST(request: NextRequest) {
         const savedUser = await user.save();
         console.log('User created successfully:', savedUser.email);
 
+        const websiteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        
+        const vaultData: VaultItemData = {
+            title: 'PassManager Account',
+            username: email,
+            password: password,
+            url: websiteUrl,
+            notes: 'Your PassManager account credentials - saved automatically on registration'
+        };
+
+        const encryptionResult = encryptVaultItem(vaultData, password, email);
+
+        if (!encryptionResult.success || !encryptionResult.encryptedData) {
+            console.error('Failed to encrypt vault data');
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Failed to create vault entry'
+                },
+                { status: 500 }
+            );
+        }
+
+        const firstVaultEntry = new VaultItem({
+            userId: savedUser._id,
+            encryptedData: encryptionResult.encryptedData,
+            category: 'personal',
+            isFavorite: true
+        });
+
+        await firstVaultEntry.save();
+        console.log('First vault entry created for user:', savedUser.email);
+
         return NextResponse.json(
             {
                 success: true,
@@ -85,6 +120,8 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        console.error('Registration error:', error);
+        
         if (error instanceof Error && 'code' in error && error.code === 11000) {
             return NextResponse.json(
                 {

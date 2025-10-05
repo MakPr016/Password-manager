@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { error } from 'console';
 import { Alert, AlertDescription } from '../ui/alert';
 
 export default function LoginForm() {
@@ -65,7 +64,7 @@ export default function LoginForm() {
           description: result?.error || 'Invalid email or password'
         });
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error');
       toast.error('Network error', {
         description: 'Please check your connection and try again'
@@ -175,7 +174,7 @@ export default function LoginForm() {
             </span>
             <Button
               variant='link'
-              onClick={() => router.push('/auth/signup')}
+              onClick={() => router.push('/signup')}
               className="cursor-pointer hover:underline font-medium px-1"
               disabled={isLoading}
             >

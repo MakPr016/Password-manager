@@ -1,7 +1,6 @@
 import CryptoJS from 'crypto-js';
 import type { EncryptionResult, DecryptionResult, VaultItemData } from '@/types';
 
-
 export const generateEncryptionKey = (userPassword: string, userEmail: string): string => {
     const salt = CryptoJS.enc.Utf8.parse(userEmail);
     const key = CryptoJS.PBKDF2(userPassword, salt, {
@@ -50,10 +49,16 @@ export const decryptVaultItem = (
     try {
         const key = generateEncryptionKey(userPassword, userEmail);
         const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key);
-        const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        
+        let decryptedString = '';
+        try {
+            decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        } catch (error) {
+            throw new Error('Invalid password - decryption failed');
+        }
 
         if (!decryptedString) {
-            throw new Error('Invalid password or corrupted data');
+            throw new Error('Invalid password - unable to decrypt data');
         }
 
         const data: VaultItemData = JSON.parse(decryptedString);
@@ -66,7 +71,9 @@ export const decryptVaultItem = (
         console.error('Decryption error:', error);
         return {
             success: false,
-            error: 'Decryption failed - wrong password or corrupted data'
+            error: error instanceof Error && error.message.includes('Invalid password') 
+                ? 'Invalid password - please try again' 
+                : 'Decryption failed - wrong password or corrupted data'
         };
     }
 };

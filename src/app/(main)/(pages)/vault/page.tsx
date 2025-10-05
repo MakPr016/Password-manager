@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import VaultItemsGrid from './_components/VaultItemsGrid';
 import AddVaultItemModal from './_components/AddVaultItemModal';
 import { decryptVaultItem } from '@/lib/encryption';
 import { useVault } from '@/providers/vault-provider';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface VaultItem {
     _id: string;
@@ -36,6 +37,8 @@ export default function VaultPage() {
     const [decryptedItems, setDecryptedItems] = useState<any[]>([]);
     const [tempPassword, setTempPassword] = useState('');
     const [unlocking, setUnlocking] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -53,7 +56,7 @@ export default function VaultPage() {
         if (isUnlocked && masterPassword && vaultItems.length > 0) {
             filterAndDecryptItems();
         }
-    }, [category, vaultItems, isUnlocked, masterPassword]);
+    }, [category, vaultItems, isUnlocked, masterPassword, debouncedSearchQuery]);
 
     const fetchVaultItems = async () => {
         try {
@@ -76,11 +79,10 @@ export default function VaultPage() {
         if (!session?.user?.email || !masterPassword) return;
 
         let filteredItems = vaultItems;
-        
-        if (category) {
-            filteredItems = vaultItems.filter(item => item.category === category);
-        }
 
+        if (category) {
+            filteredItems = filteredItems.filter(item => item.category === category);
+        }
         const decrypted = filteredItems
             .map((item) => {
                 const result = decryptVaultItem(
@@ -103,7 +105,21 @@ export default function VaultPage() {
             })
             .filter((item) => item !== null);
 
-        setDecryptedItems(decrypted);
+        if (debouncedSearchQuery.trim()) {
+            const query = debouncedSearchQuery.toLowerCase();
+            const searchFiltered = decrypted.filter((item) => {
+                return (
+                    item.decryptedData.title?.toLowerCase().includes(query) ||
+                    item.decryptedData.username?.toLowerCase().includes(query) ||
+                    item.decryptedData.url?.toLowerCase().includes(query) ||
+                    item.category?.toLowerCase().includes(query) ||
+                    item.decryptedData.notes?.toLowerCase().includes(query)
+                );
+            });
+            setDecryptedItems(searchFiltered);
+        } else {
+            setDecryptedItems(decrypted);
+        }
     };
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -153,6 +169,10 @@ export default function VaultPage() {
     const getCategoryTitle = () => {
         if (!category) return 'All Items';
         return category.charAt(0).toUpperCase() + category.slice(1);
+    };
+
+    const clearSearch = () => {
+        setSearchQuery('');
     };
 
     if (status === 'loading') {
@@ -224,7 +244,7 @@ export default function VaultPage() {
             />
 
             <div className="container mx-auto py-8 px-4">
-                <div className="mb-8 flex items-center justify-between">
+                <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold">{getCategoryTitle()}</h1>
                         <p className="text-muted-foreground mt-2">
@@ -237,15 +257,55 @@ export default function VaultPage() {
                     </Button>
                 </div>
 
+                <div className="mb-6">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Search vault items..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 pr-10"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={clearSearch}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label="Clear search"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+                    {debouncedSearchQuery && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                            Found {decryptedItems.length} result{decryptedItems.length !== 1 ? 's' : ''} for &quot;{debouncedSearchQuery}&quot;
+                        </p>
+                    )}
+                </div>
+
                 {decryptedItems.length === 0 ? (
                     <div className="text-center py-12">
-                        <p className="text-muted-foreground mb-4">
-                            {category ? `No ${category} items found` : 'No vault items found'}
-                        </p>
-                        <Button onClick={() => setShowAddModal(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Your First Item
-                        </Button>
+                        {searchQuery ? (
+                            <>
+                                <p className="text-muted-foreground mb-4">
+                                    No results found for &quot;{searchQuery}&quot;
+                                </p>
+                                <Button variant="outline" onClick={clearSearch}>
+                                    Clear Search
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-muted-foreground mb-4">
+                                    {category ? `No ${category} items found` : 'No vault items found'}
+                                </p>
+                                <Button onClick={() => setShowAddModal(true)}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Your First Item
+                                </Button>
+                            </>
+                        )}
                     </div>
                 ) : (
                     <VaultItemsGrid items={decryptedItems} />

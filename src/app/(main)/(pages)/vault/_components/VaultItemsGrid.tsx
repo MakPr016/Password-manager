@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, Copy, ExternalLink, Star } from 'lucide-react';
+import { Eye, EyeOff, Copy, ExternalLink, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import type { VaultItemData } from '@/types';
 
@@ -17,11 +17,11 @@ interface DecryptedVaultItem {
     decryptedData: VaultItemData;
 }
 
-interface VaultItemsListProps {
+interface VaultItemsGridProps {
     items: DecryptedVaultItem[];
 }
 
-export default function VaultItemsList({ items }: VaultItemsListProps) {
+export default function VaultItemsGrid({ items }: VaultItemsGridProps) {
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -34,6 +34,10 @@ export default function VaultItemsList({ items }: VaultItemsListProps) {
         try {
             await navigator.clipboard.writeText(text);
             toast.success(`${label} copied to clipboard!`);
+
+            setTimeout(async () => {
+                await navigator.clipboard.writeText('');
+            }, 15000);
         } catch (error) {
             toast.error('Failed to copy to clipboard');
         }
@@ -66,14 +70,14 @@ function VaultItemCard({ item, getInitials, handleCopy }: VaultItemCardProps) {
         <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
                 <div className="flex items-start flex-col md:flex-row justify-between gap-4">
-                    <div className="flex flex-col md:flex-row items-start gap-4 flex-1">
-                        <Avatar className="h-12 w-12 rounded-lg">
+                    <div className="flex flex-col md:flex-row items-start gap-4 flex-1 min-w-0">
+                        <Avatar className="h-12 w-12 rounded-lg flex-shrink-0">
                             <AvatarFallback className="rounded-lg bg-primary/10 text-primary">
                                 {getInitials(item.decryptedData.title || item.decryptedData.username || 'VA')}
                             </AvatarFallback>
                         </Avatar>
 
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 w-full">
                             <div className="flex items-center gap-2">
                                 <h3 className="font-semibold text-lg truncate">
                                     {item.decryptedData.title}
@@ -94,7 +98,7 @@ function VaultItemCard({ item, getInitials, handleCopy }: VaultItemCardProps) {
                                     href={item.decryptedData.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 dark:text-blue-50 hover:underline truncate block mt-1"
+                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block mt-1"
                                 >
                                     {item.decryptedData.url}
                                 </a>
@@ -115,14 +119,20 @@ function VaultItemCard({ item, getInitials, handleCopy }: VaultItemCardProps) {
                                         size="sm"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="flex-shrink-0"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     >
-                                        <Eye className="h-4 w-4" />
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleCopy(item.decryptedData.password!, 'Password')}
                                         className="flex-shrink-0"
+                                        aria-label="Copy password"
                                     >
                                         <Copy className="h-4 w-4" />
                                     </Button>

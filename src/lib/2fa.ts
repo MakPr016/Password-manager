@@ -9,6 +9,13 @@ export const generate2FASecret = (email: string) => {
         length: 32
     });
 
+    const otpauthUrl = speakeasy.otpauthURL({
+        secret: secret.base32,
+        label: email, 
+        issuer: 'PassManager', 
+        encoding: 'base32'
+    });
+
     return {
         secret: secret.base32,
         otpauthUrl: secret.otpauth_url

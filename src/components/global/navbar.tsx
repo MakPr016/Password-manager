@@ -42,7 +42,7 @@ const Navbar = () => {
                     width={0}
                     height={32}
                     sizes="100vw"
-                    style={{ width: 'auto', height: '24px' }}
+                    style={{ width: 'auto', height: '32px' }}
                 />
             </aside>
             <aside className='flex items-center gap-2'>

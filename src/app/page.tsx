@@ -140,23 +140,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        <section className="max-w-4xl mx-auto">
-          <Card className="p-12 md:p-16 text-center space-y-6 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-primary/20">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Secure Your Digital Life?
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Join thousands of users who trust PassManager with their passwords
-            </p>
-            {!session && (
-              <Button size="lg" className="text-lg px-8 h-14 rounded-full" onClick={() => router.push('/signup')}>
-                Start Using PassManager
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            )}
-          </Card>
-        </section>
       </main>
 
       <footer className="border-t py-12 mt-20">

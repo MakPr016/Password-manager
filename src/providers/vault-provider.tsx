@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 interface VaultContextType {
@@ -17,7 +18,6 @@ const ENC_KEY = "__vault_enc_key__";
 const ENC_PWD = "__vault_enc_pwd__";
 const IV_KEY = "__vault_iv__";
 const TIMEOUT_KEY = "__vault_timeout__";
-const TIMEOUT_DURATION = 10 * 60 * 1000;
 
 async function generateKey(): Promise<CryptoKey> {
     const keyData = crypto.getRandomValues(new Uint8Array(32));
@@ -89,9 +89,29 @@ async function decryptPassword(encrypted: string, ivStr: string): Promise<string
 }
 
 export function VaultProvider({ children }: { children: ReactNode }) {
+    const { data: session } = useSession();
     const [masterPassword, setMasterPassword] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const [remainingTime, setRemainingTime] = useState(0);
+    const [timeoutDuration, setTimeoutDuration] = useState(10);
+
+    useEffect(() => {
+        const fetchUserTimeout = async () => {
+            if (session?.user?.email) {
+                try {
+                    const response = await fetch('/api/user/preferences');
+                    const data = await response.json();
+                    if (data.success) {
+                        setTimeoutDuration(data.preferences.autoClearTime || 10);
+                    }
+                } catch (error) {
+                    console.error('Error fetching timeout preference:', error);
+                }
+            }
+        };
+
+        fetchUserTimeout();
+    }, [session]);
 
     useEffect(() => {
         const initializeSession = async () => {
@@ -155,6 +175,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     }, [masterPassword]);
 
     const unlockVault = async (password: string) => {
+        const TIMEOUT_DURATION = timeoutDuration * 60 * 1000;
         const expiry = Date.now() + TIMEOUT_DURATION;
         const { encrypted, iv } = await encryptPassword(password);
         
@@ -163,7 +184,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         sessionStorage.setItem(IV_KEY, iv);
         sessionStorage.setItem(TIMEOUT_KEY, expiry.toString());
         setRemainingTime(TIMEOUT_DURATION / 1000);
-        toast.success('Vault unlocked for 10 minutes');
+        toast.success(`Vault unlocked for ${timeoutDuration} minutes`);
     };
 
     const lockVault = () => {

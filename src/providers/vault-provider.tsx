@@ -17,7 +17,7 @@ const ENC_KEY = "__vault_enc_key__";
 const ENC_PWD = "__vault_enc_pwd__";
 const IV_KEY = "__vault_iv__";
 const TIMEOUT_KEY = "__vault_timeout__";
-const TIMEOUT_DURATION = 5 * 60 * 1000;
+const TIMEOUT_DURATION = 10 * 60 * 1000;
 
 async function generateKey(): Promise<CryptoKey> {
     const keyData = crypto.getRandomValues(new Uint8Array(32));
@@ -163,7 +163,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         sessionStorage.setItem(IV_KEY, iv);
         sessionStorage.setItem(TIMEOUT_KEY, expiry.toString());
         setRemainingTime(TIMEOUT_DURATION / 1000);
-        toast.success('Vault unlocked for 5 minutes');
+        toast.success('Vault unlocked for 10 minutes');
     };
 
     const lockVault = () => {

@@ -6,7 +6,7 @@ import User from '@/models/User';
 import mongoose from 'mongoose';
 
 export async function GET(
-    request: NextRequest,
+    _request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -69,5 +69,77 @@ export async function GET(
             success: false,
             error: 'Internal server error'
         }, { status: 500 });
+    }
+}
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        await connectMongo();
+
+        const user = await User.findOne({ email: session.user.email });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        const { id } = await params;
+        const { encryptedData, category, isFavorite } = await request.json();
+
+        const item = await VaultItem.findOneAndUpdate(
+            { _id: id, userId: user._id },
+            { encryptedData, category, isFavorite },
+            { new: true }
+        );
+
+        if (!item) {
+            return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, item });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
+    }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        await connectMongo();
+
+        const user = await User.findOne({ email: session.user.email });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        const { id } = await params;
+
+        const item = await VaultItem.findOneAndDelete({
+            _id: id,
+            userId: user._id
+        });
+
+        if (!item) {
+            return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
     }
 }

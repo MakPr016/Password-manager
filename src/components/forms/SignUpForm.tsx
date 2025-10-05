@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
 import { signupSchema, type SignupFormData } from '@/lib/validations/auth';
 import { generatePassword, calculatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from '@/lib/passwordUtils';
@@ -13,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, RefreshCw, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
-import { error } from 'console';
 
 export default function SignupForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -93,16 +93,27 @@ export default function SignupForm() {
 
             const result = await response.json();
 
-            if (result.success) {
+            if (result.success && result.autoLogin) {
                 toast.success('Account created successfully!', {
-                    description: 'Redirecting to login page...',
-                    duration: 2000
+                    description: 'Logging you in...'
                 });
-                reset();
 
-                setTimeout(() => {
+                const signInResponse = await signIn('credentials', {
+                    email: data.email,
+                    password: data.password,
+                    redirect: false
+                });
+
+                if (signInResponse?.error) {
+                    toast.error('Registration successful but auto-login failed', {
+                        description: 'Please sign in manually'
+                    });
+                    router.push('/login');
+                } else if (signInResponse?.ok) {
+                    toast.success('Welcome! You are now logged in.');
+                    reset();
                     router.push('/dashboard');
-                }, 2000);
+                }
             } else {
                 setError(result.error || 'Failed to create account');
                 toast.error('Failed to create account', {

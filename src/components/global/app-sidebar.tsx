@@ -209,31 +209,33 @@ export default function AppSidebar() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-2 py-1.5">
+              <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:flex-col-reverse">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarFallback className="rounded-lg">
                     {getUserInitials(session?.user?.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-semibold">
                     {session?.user?.name || 'User'}
                   </span>
                 </div>
-                {mounted && (
-                  <ThemeToggleButton
-                    theme={currentTheme}
-                    onClick={handleThemeToggle}
-                    variant="circle"
-                    start="bottom-left"
-                  />
-                )}
-                <Button
-                  onClick={handleSignOut}
-                  className='text-red-600 bg-red-200 hover:bg-red-300'
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col-reverse">
+                  {mounted && (
+                    <ThemeToggleButton
+                      theme={currentTheme}
+                      onClick={handleThemeToggle}
+                      variant="circle"
+                      start="bottom-left"
+                    />
+                  )}
+                  <Button
+                    onClick={handleSignOut}
+                    className='text-red-600 bg-red-200 hover:bg-red-300'
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </SidebarMenuItem>

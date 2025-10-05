@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 success: true,
-                message: 'Account created successfully! You can now sign in.',
+                autoLogin: true,
+                message: 'Account created successfully!',
                 user: {
                     id: savedUser._id.toString(),
                     name: savedUser.name,

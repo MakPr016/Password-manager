@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
 
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-            console.log('User already exists:', email);
             return NextResponse.json(
                 {
                     success: false,
@@ -70,8 +69,6 @@ export async function POST(request: NextRequest) {
             }
         });
         const savedUser = await user.save();
-        console.log('User created successfully:', savedUser.email);
-
         const websiteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         
         const vaultData: VaultItemData = {
@@ -103,8 +100,6 @@ export async function POST(request: NextRequest) {
         });
 
         await firstVaultEntry.save();
-        console.log('First vault entry created for user:', savedUser.email);
-
         return NextResponse.json(
             {
                 success: true,

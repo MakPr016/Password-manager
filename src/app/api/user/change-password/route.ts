@@ -56,8 +56,6 @@ export async function POST(request: NextRequest) {
         const allVaultItems = await VaultItem.find({ userId: user._id });
         const websiteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-        console.log(`Found ${allVaultItems.length} vault items to re-encrypt`);
-
         const reencryptedItems = [];
         const failedItems = [];
 
@@ -126,8 +124,6 @@ export async function POST(request: NextRequest) {
                 failedItems
             }, { status: 500 });
         }
-
-        console.log(`Successfully re-encrypted ${reencryptedItems.length} items`);
 
         for (const item of reencryptedItems) {
             await VaultItem.findByIdAndUpdate(item._id, {

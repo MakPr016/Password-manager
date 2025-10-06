@@ -15,8 +15,6 @@ const handler = NextAuth({
                 twoFactorCode: { label: '2FA Code', type: 'text' }
             },
             async authorize(credentials) {
-                console.log('Authosization attempt for :', credentials?.email);
-
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Email and Password required");
                 }
@@ -36,8 +34,6 @@ const handler = NextAuth({
                     if (!isValidPassword) {
                         throw new Error('Invalid password');
                     }
-                    console.log('Password verified for:', credentials.email);
-
                     if (user.twoFactorEnabled && user.twoFactorSecret) {
                         if (!credentials.twoFactorCode) {
                             throw new Error('2FA is REQUIRED');
@@ -49,7 +45,6 @@ const handler = NextAuth({
                         if (!is2FAValid) {
                             throw new Error('Invalid 2FA code');
                         }
-                        console.log('2FA verified for:', credentials.email);
                     }
 
                     return {
@@ -99,10 +94,10 @@ const handler = NextAuth({
     },
     events: {
         async signIn(message) {
-            console.log('User signed in:', message.user.email);
+            console.log('User signed in');
         },
         async signOut(message) {
-            console.log('User signed out:', message.token?.email);
+            console.log('User signed out');
         }
     },
 
